@@ -1,21 +1,17 @@
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Controls
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 import "../../theme"
+
+// Adjust this import if LauncherService.qml is in another module.
 import "../../services"
 
-// Full-screen transparent layer-shell surface (so clicking anywhere
-// outside the search card dismisses it), with a centered card holding
-// the actual search box + results — same visual idea as Spotlight.
-//
-// Unlike ControlCenter/NotificationCenter (PopupWindow + HyprlandFocusGrab,
-// no keyboard input needed), this surface has to actually receive
-// keyboard input, so it claims layer-shell keyboard focus directly
-// instead of relying on a focus-grab-to-dismiss pattern.
 PanelWindow {
     id: root
+
     visible: LauncherService.visible
     color: "transparent"
 
@@ -30,98 +26,177 @@ PanelWindow {
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
     WlrLayershell.namespace: "macos-qs-launcher"
 
-    // Exposes `qs ipc call launcher toggle|show|hide` to the outside
-    // world, so a Hyprland keybind can summon this without Quickshell
-    // needing its own global-hotkey system. See compositor-config/
-    // for the keybind that calls this.
-    //
-    // FIX: Quickshell's IPC system silently refuses to register any
-    // handler function whose argument and return types aren't spelled
-    // out explicitly (this is documented, not a guess) — a bare
-    // "function toggle() { ... }" never becomes callable via
-    // `qs ipc call`, even though the QML itself loads without error.
-    // That's exactly why the launcher never opened: the keybind was
-    // firing, Hyprland was running the command, but there was nothing
-    // registered under target "launcher" for it to call. Adding the
-    // ": void" return type on every function is the actual fix below.
     IpcHandler {
         target: "launcher"
-        function toggle(): void { LauncherService.toggle() }
-        function show(): void { LauncherService.show() }
-        function hide(): void { LauncherService.hide() }
-    }
 
-    onVisibleChanged: {
-        if (visible) {
-            searchInput.forceActiveFocus()
-            resultsList.currentIndex = 0
+        function toggle(): void {
+            LauncherService.toggle();
+        }
+
+        function show(): void {
+            LauncherService.show();
+        }
+
+        function hide(): void {
+            LauncherService.hide();
         }
     }
 
-    // Click anywhere outside the card dismisses, same interaction as
-    // Spotlight and as this project's own Control Center/Notification
-    // Center popups.
+    function close(): void {
+        LauncherService.hide();
+    }
+
+    function launchSelected(): void {
+        const index = results.currentIndex;
+        const entries = LauncherService.results;
+        const entry = index >= 0 ? entries[index] : null;
+
+        if (!entry)
+            return;
+        entry.execute();
+        root.close();
+    }
+
+    function updateCurrentIndex(): void {
+        results.currentIndex = LauncherService.results.length > 0 ? 0 : -1;
+    }
+
+    Timer {
+        id: focusTimer
+
+        interval: 1
+        repeat: false
+
+        onTriggered: search.forceActiveFocus()
+    }
+
+    Connections {
+        target: LauncherService
+
+        function onVisibleChanged() {
+            if (LauncherService.visible) {
+                focusTimer.restart();
+                updateCurrentIndex();
+            }
+        }
+
+        function onQueryChanged() {
+            updateCurrentIndex();
+
+            if (search.text !== LauncherService.query)
+                search.text = LauncherService.query;
+        }
+    }
+
+    // Clicking outside the card closes the launcher.
     MouseArea {
         anchors.fill: parent
-        onClicked: LauncherService.hide()
+
+        onClicked: root.close()
     }
 
     Rectangle {
         id: card
-        width: 560
-        height: cardColumn.implicitHeight + Spacing.lg * 2
+
+        width: Math.min(parent.width - Spacing.xl * 2, 680)
+        height: 520
+
         anchors.horizontalCenter: parent.horizontalCenter
         y: parent.height * 0.22
+
         radius: 14
-        color: Colors.surface
+        color: Colors.background
         border.width: 1
         border.color: Colors.separator
+        clip: true
 
-        // Swallow clicks inside the card so they don't fall through to
-        // the full-screen dismiss MouseArea behind it.
+        // Consume clicks inside the card.
         MouseArea {
             anchors.fill: parent
         }
 
         ColumnLayout {
-            id: cardColumn
             anchors.fill: parent
-            anchors.margins: Spacing.lg
+            anchors.margins: Spacing.md
             spacing: Spacing.md
 
-            Item {
+            RowLayout {
                 Layout.fillWidth: true
-                implicitHeight: searchInput.implicitHeight
+                spacing: Spacing.sm
 
-                Text {
-                    text: "Spotlight Search"
-                    visible: searchInput.text.length === 0
-                    color: Colors.textTertiary
-                    font.family: Typography.family
-                    font.pixelSize: Typography.title
+                Image {
+                    source: Qt.resolvedUrl("../../assets/search.svg")
+
+                    sourceSize.width: 22
+                    sourceSize.height: 22
+
+                    width: 22
+                    height: 22
+
+                    fillMode: Image.PreserveAspectFit
+                    opacity: 0.8
+
+                    Layout.alignment: Qt.AlignVCenter
                 }
 
-                TextInput {
-                    id: searchInput
-                    width: parent.width
-                    color: Colors.textPrimary
-                    font.family: Typography.family
-                    font.pixelSize: Typography.title
-                    text: LauncherService.query
+                Item {
+                    Layout.fillWidth: true
+                    implicitHeight: search.implicitHeight
 
-                    onTextEdited: LauncherService.query = text
-                    onTextChanged: if (text.length === 0) resultsList.currentIndex = 0
+                    Text {
+                        anchors.left: parent.left
+                        anchors.verticalCenter: search.verticalCenter
 
-                    Keys.onEscapePressed: LauncherService.hide()
-                    Keys.onDownPressed: resultsList.incrementCurrentIndex()
-                    Keys.onUpPressed: resultsList.decrementCurrentIndex()
-                    Keys.onReturnPressed: {
-                        const item = LauncherService.results[resultsList.currentIndex]
-                        if (item) {
-                            item.execute()
-                            LauncherService.hide()
+                        text: "Search applications"
+                        color: Colors.textTertiary
+                        font.family: Typography.family
+                        font.pixelSize: Typography.title
+
+                        visible: search.text.length === 0 && !search.activeFocus
+                    }
+
+                    TextInput {
+                        id: search
+
+                        anchors.fill: parent
+
+                        color: Colors.textPrimary
+                        selectionColor: Colors.accent
+                        font.family: Typography.family
+                        font.pixelSize: Typography.title
+                        clip: true
+
+                        text: LauncherService.query
+                        focus: LauncherService.visible
+
+                        onTextEdited: {
+                            if (LauncherService.query !== text)
+                                LauncherService.query = text;
+                        }
+
+                        Keys.onPressed: function (event) {
+                            if (event.key === Qt.Key_Down) {
+                                results.incrementCurrentIndex();
+                                event.accepted = true;
+                            } else if (event.key === Qt.Key_Up) {
+                                results.decrementCurrentIndex();
+                                event.accepted = true;
+                            } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                                root.launchSelected();
+                                event.accepted = true;
+                            } else if (event.key === Qt.Key_Escape) {
+                                root.close();
+                                event.accepted = true;
+                            }
                         }
                     }
+                }
+
+                Text {
+                    text: "esc"
+                    color: Colors.textTertiary
+                    font.family: Typography.monoFamily
+                    font.pixelSize: Typography.caption
                 }
             }
 
@@ -129,68 +204,134 @@ PanelWindow {
                 Layout.fillWidth: true
                 height: 1
                 color: Colors.separator
-                visible: resultsList.count > 0
             }
 
             ListView {
-                id: resultsList
+                id: results
+
                 Layout.fillWidth: true
-                Layout.preferredHeight: contentHeight
+                Layout.fillHeight: true
+
                 model: LauncherService.results
+                currentIndex: LauncherService.results.length > 0 ? 0 : -1
+
                 clip: true
-                currentIndex: 0
+                spacing: 2
+
+                flickDeceleration: 1500
+                maximumFlickVelocity: 1800
+                boundsBehavior: Flickable.StopAtBounds
+
+                NumberAnimation {
+                    id: smoothScrollAnimation
+
+                    target: results
+                    property: "contentY"
+                    duration: 200
+                    easing.type: Easing.OutCubic
+                }
+
+                WheelHandler {
+                    acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+
+                    onWheel: function (event) {
+                        const delta = event.pixelDelta.y !== 0 ? event.pixelDelta.y : event.angleDelta.y / 120 * 58;
+
+                        const maximumScroll = Math.max(0, results.contentHeight - results.height);
+
+                        const nextY = Math.max(0, Math.min(maximumScroll, results.contentY - delta));
+
+                        smoothScrollAnimation.stop();
+                        smoothScrollAnimation.from = results.contentY;
+                        smoothScrollAnimation.to = nextY;
+                        smoothScrollAnimation.restart();
+
+                        event.accepted = true;
+                    }
+                }
 
                 delegate: Rectangle {
                     id: row
-                    required property var modelData
-                    required property int index
-                    width: resultsList.width
-                    height: 44
-                    radius: 8
-                    color: resultsList.currentIndex === index ? Colors.surfaceElevated : "transparent"
 
-                    Behavior on color {
-                        ColorAnimation { duration: Motion.fast }
+                    required property int index
+                    required property var modelData
+
+                    property var entry: modelData
+
+                    width: results.width
+                    height: 58
+                    radius: 9
+
+                    color: ListView.isCurrentItem ? Colors.surfaceElevated : "transparent"
+
+                    Image {
+                        id: appIcon
+
+                        anchors.left: parent.left
+                        anchors.leftMargin: Spacing.sm
+                        anchors.verticalCenter: parent.verticalCenter
+
+                        width: 40
+                        height: 40
+
+                        source: Quickshell.iconPath(row.entry.icon, true)
+                        sourceSize.width: 40
+                        sourceSize.height: 40
+                        fillMode: Image.PreserveAspectFit
+
+                        visible: status === Image.Ready
                     }
 
-                    RowLayout {
-                        anchors.fill: parent
+                    Rectangle {
+                        anchors.left: parent.left
                         anchors.leftMargin: Spacing.sm
-                        anchors.rightMargin: Spacing.sm
-                        spacing: Spacing.sm
+                        anchors.verticalCenter: parent.verticalCenter
 
-                        Image {
-                            source: row.modelData.icon ? Quickshell.iconPath(row.modelData.icon, true) : ""
-                            visible: source !== ""
-                            Layout.preferredWidth: 28
-                            Layout.preferredHeight: 28
-                            sourceSize.width: 28
-                            sourceSize.height: 28
-                            fillMode: Image.PreserveAspectFit
-                        }
+                        width: 40
+                        height: 40
+                        radius: 9
 
-                        Rectangle {
-                            visible: !(row.modelData.icon && row.modelData.icon.length > 0)
-                            Layout.preferredWidth: 28
-                            Layout.preferredHeight: 28
-                            radius: 6
-                            color: Colors.surfaceElevated
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: row.modelData.name ? row.modelData.name.charAt(0).toUpperCase() : "?"
-                                color: Colors.textPrimary
-                                font.family: Typography.family
-                                font.pixelSize: Typography.caption
-                            }
-                        }
+                        color: Colors.controlBackground
+                        visible: !appIcon.visible
 
                         Text {
-                            text: row.modelData.name || ""
+                            anchors.centerIn: parent
+
+                            text: row.entry.name && row.entry.name.length > 0 ? row.entry.name.charAt(0).toUpperCase() : "?"
+
+                            color: Colors.textPrimary
+                            font.family: Typography.family
+                            font.pixelSize: Typography.title
+                        }
+                    }
+
+                    Column {
+                        anchors.left: parent.left
+                        anchors.leftMargin: 64
+                        anchors.right: parent.right
+                        anchors.rightMargin: Spacing.md
+                        anchors.verticalCenter: parent.verticalCenter
+
+                        spacing: 2
+
+                        Text {
+                            width: parent.width
+
+                            text: row.entry.name || ""
                             color: Colors.textPrimary
                             font.family: Typography.family
                             font.pixelSize: Typography.body
-                            Layout.fillWidth: true
+                            elide: Text.ElideRight
+                        }
+
+                        Text {
+                            width: parent.width
+
+                            text: row.entry.genericName || row.entry.comment || "Application"
+
+                            color: Colors.textSecondary
+                            font.family: Typography.family
+                            font.pixelSize: Typography.caption
                             elide: Text.ElideRight
                         }
                     }
@@ -198,21 +339,64 @@ PanelWindow {
                     MouseArea {
                         anchors.fill: parent
                         hoverEnabled: true
-                        onEntered: resultsList.currentIndex = row.index
+
+                        onEntered: {
+                            results.currentIndex = row.index;
+                        }
+
                         onClicked: {
-                            row.modelData.execute()
-                            LauncherService.hide()
+                            results.currentIndex = row.index;
+                            root.launchSelected();
                         }
                     }
                 }
 
                 Text {
                     anchors.centerIn: parent
-                    visible: resultsList.count === 0 && LauncherService.query.length > 0
-                    text: "No results"
-                    color: Colors.textTertiary
+
+                    visible: results.count === 0
+
+                    text: LauncherService.query.trim().length > 0 ? "No applications found" : "No applications available"
+
+                    color: Colors.textSecondary
                     font.family: Typography.family
                     font.pixelSize: Typography.body
+                }
+
+                ScrollBar.vertical: ScrollBar {
+                    id: verticalScrollBar
+
+                    policy: ScrollBar.AsNeeded
+                    width: 10
+
+                    contentItem: Rectangle {
+                        implicitWidth: 10
+                        radius: width / 2
+
+                        color: verticalScrollBar.pressed ? Colors.textPrimary : Colors.textSecondary
+
+                        opacity: verticalScrollBar.active || verticalScrollBar.pressed ? 1.0 : 0.85
+
+                        Behavior on color {
+                            ColorAnimation {
+                                duration: Motion.fast
+                            }
+                        }
+
+                        Behavior on opacity {
+                            NumberAnimation {
+                                duration: Motion.fast
+                            }
+                        }
+                    }
+
+                    background: Rectangle {
+                        implicitWidth: 10
+                        radius: width / 2
+
+                        color: Colors.controlBackground
+                        opacity: 0.8
+                    }
                 }
             }
         }
