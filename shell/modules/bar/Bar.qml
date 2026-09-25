@@ -7,6 +7,7 @@ import Quickshell.Bluetooth
 import Quickshell.Networking
 import Quickshell.Hyprland
 import "../../theme"
+import "../../components"
 import "../../services"
 import "../controlcenter"
 import "../notifications"
@@ -39,6 +40,15 @@ PanelWindow {
         const devices = Networking.devices.values
         for (let i = 0; i < devices.length; i++) {
             if (devices[i].type === DeviceType.Wifi) return devices[i]
+        }
+        return null
+    }
+
+    readonly property var connectedWifi: {
+        if (!bar.wifiDevice || !bar.wifiDevice.connected) return null
+        const networks = bar.wifiDevice.networks.values
+        for (let i = 0; i < networks.length; i++) {
+            if (networks[i].connected) return networks[i]
         }
         return null
     }
@@ -112,17 +122,19 @@ PanelWindow {
             spacing: Spacing.md
             Layout.alignment: Qt.AlignVCenter
 
-            // Plain text labels for now, not icons. The icon system
-            // is its own later phase, this just proves the data is real.
-            Text {
-                text: {
-                    if (!Networking.wifiEnabled) return "wifi off"
-                    if (!bar.wifiDevice || !bar.wifiDevice.connected) return "wifi"
-                    return "wifi on"
+            StatusIcon {
+                source: {
+                    if (!Networking.wifiEnabled || !bar.wifiDevice || !bar.wifiDevice.connected)
+                        return Qt.resolvedUrl("../../assets/icons/wifi-off.svg")
+                    return Qt.resolvedUrl("../../assets/icons/wifi-on.svg")
                 }
-                color: Colors.textSecondary
-                font.family: Typography.family
-                font.pixelSize: Typography.caption
+                fill: !Networking.wifiEnabled || !bar.wifiDevice || !bar.wifiDevice.connected
+                    ? 1
+                    : (bar.connectedWifi ? bar.connectedWifi.signalStrength : 0)
+                fillFromBottom: true
+                showBackground: false
+                Layout.preferredWidth: 16
+                Layout.preferredHeight: 16
             }
 
             Text {
@@ -135,6 +147,16 @@ PanelWindow {
                 color: Colors.textSecondary
                 font.family: Typography.family
                 font.pixelSize: Typography.caption
+
+                MouseArea {
+                    anchors.fill: parent
+                    anchors.margins: -Spacing.xs
+                    onClicked: {
+                        const adapter = bar.btAdapter
+                        if (!adapter) return
+                        adapter.enabled = !adapter.enabled
+                    }
+                }
             }
 
             Text {
@@ -149,25 +171,42 @@ PanelWindow {
                 font.pixelSize: Typography.caption
             }
 
-            Text {
-                text: {
-                    const dev = UPower.displayDevice
-                    if (!dev || !dev.isPresent) return "--"
-                    const pct = Math.round(dev.percentage * 100)
-                    const charging = dev.state === UPowerDeviceState.Charging
-                    return pct + "%" + (charging ? " charging" : "")
+            RowLayout {
+                spacing: Spacing.xs
+
+                StatusIcon {
+                    readonly property var battery: UPower.displayDevice
+                    source: battery && battery.state === UPowerDeviceState.Charging
+                        ? Qt.resolvedUrl("../../assets/icons/battery-charging.svg")
+                        : Qt.resolvedUrl("../../assets/icons/battery-draining.svg")
+                    fillSource: Qt.resolvedUrl("../../assets/icons/battery-fill.svg")
+                    fill: battery && battery.isPresent ? battery.percentage : 0
+                    fillStart: 61 / 512
+                    fillEnd: 391 / 512
+                    backgroundColor: Colors.textPrimary
+                    fillColor: battery && battery.percentage <= 0.2 ? "#ff453a" : Colors.textPrimary
+                    Layout.preferredWidth: 18
+                    Layout.preferredHeight: 16
                 }
-                color: Colors.textSecondary
-                font.family: Typography.family
-                font.pixelSize: Typography.caption
+
+                Text {
+                    text: {
+                        const dev = UPower.displayDevice
+                        if (!dev || !dev.isPresent) return "--"
+                        return Math.round(dev.percentage * 100) + "%"
+                    }
+                    color: Colors.textSecondary
+                    font.family: Typography.family
+                    font.pixelSize: Typography.caption
+                }
             }
 
-            // Plain text glyph until there's a real icon system.
-            Text {
-                text: "⌃"
-                color: Colors.textPrimary
-                font.family: Typography.family
-                font.pixelSize: Typography.body
+            StatusIcon {
+                source: Qt.resolvedUrl("../../assets/icons/control-center.svg")
+                fillColor: Colors.textPrimary
+                showBackground: false
+                Layout.preferredWidth: 18
+                Layout.preferredHeight: 18
 
                 MouseArea {
                     anchors.fill: parent

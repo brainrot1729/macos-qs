@@ -5,15 +5,45 @@ import Quickshell.Io
 import Quickshell.Services.Pipewire
 import Quickshell.Bluetooth
 import Quickshell.Networking
+import Quickshell.Services.UPower
 import "../../theme"
 import "../../components"
 import "../../services"
 
 PopupWindow {
     id: root
-    implicitWidth: 260
-    implicitHeight: content.implicitHeight + Spacing.lg * 2
+    implicitWidth: 360
+    implicitHeight: 500
     color: "transparent"
+
+    property bool displayExpanded: false
+    property real brightnessValue: 0.5
+    readonly property var adapter: Bluetooth.defaultAdapter
+    readonly property var wifiDevice: {
+        const devices = Networking.devices.values
+        for (let i = 0; i < devices.length; i++) {
+            if (devices[i].type === DeviceType.Wifi) return devices[i]
+        }
+        return null
+    }
+
+    function setVolume(value) {
+        const sink = Pipewire.defaultAudioSink
+        if (sink && sink.audio) {
+            sink.audio.muted = false
+            sink.audio.volume = value
+        }
+    }
+
+    function wifiName() {
+        if (!Networking.wifiEnabled) return "Wi-Fi Off"
+        if (!root.wifiDevice || !root.wifiDevice.connected) return "Not Connected"
+        const networks = root.wifiDevice.networks.values
+        for (let i = 0; i < networks.length; i++) {
+            if (networks[i].connected) return networks[i].name || "Connected"
+        }
+        return "Connected"
+    }
 
     PwObjectTracker {
         objects: [Pipewire.defaultAudioSink]
@@ -22,7 +52,7 @@ PopupWindow {
     Rectangle {
         anchors.fill: parent
         color: Colors.surface
-        radius: 14
+        radius: 16
         border.width: 1
         border.color: Colors.separator
     }
@@ -31,73 +61,171 @@ PopupWindow {
         id: content
         anchors.fill: parent
         anchors.margins: Spacing.lg
-        spacing: Spacing.md
+        spacing: Spacing.sm
 
-        RowLayout {
+        Row {
             width: parent.width
-            Text {
-                text: "Wi-Fi"
-                color: Colors.textPrimary
-                font.family: Typography.family
-                font.pixelSize: Typography.body
-                Layout.fillWidth: true
-            }
-            MToggle {
-                checked: Networking.wifiEnabled
-                onToggled: (c) => { Networking.wifiEnabled = c }
-            }
-        }
+            spacing: Spacing.sm
 
-        RowLayout {
-            width: parent.width
-            Text {
-                text: "Bluetooth"
-                color: Colors.textPrimary
-                font.family: Typography.family
-                font.pixelSize: Typography.body
-                Layout.fillWidth: true
-            }
-            MToggle {
-                checked: Bluetooth.defaultAdapter ? Bluetooth.defaultAdapter.enabled : false
-                onToggled: (c) => { if (Bluetooth.defaultAdapter) Bluetooth.defaultAdapter.enabled = c }
-            }
-        }
+            Rectangle {
+                width: parent.width * 0.59
+                height: 150
+                radius: 12
+                color: Colors.controlBackground
 
-        RowLayout {
-            width: parent.width
-            Text {
-                text: "Do Not Disturb"
-                color: Colors.textPrimary
-                font.family: Typography.family
-                font.pixelSize: Typography.body
-                Layout.fillWidth: true
-            }
-            MToggle {
-                checked: NotificationService.dndEnabled
-                onToggled: (c) => { NotificationService.dndEnabled = c }
-            }
-        }
+                Column {
+                    anchors.fill: parent
+                    anchors.margins: Spacing.md
+                    spacing: Spacing.sm
 
-        Text {
-            text: "Volume"
-            color: Colors.textSecondary
-            font.family: Typography.family
-            font.pixelSize: Typography.caption
-        }
+                    Text {
+                        text: "Connectivity"
+                        color: Colors.textPrimary
+                        font.family: Typography.family
+                        font.pixelSize: Typography.body
+                        font.bold: true
+                    }
 
-        MSlider {
-            id: volumeSlider
-            width: parent.width
-            value: {
-                const sink = Pipewire.defaultAudioSink
-                return sink && sink.audio ? sink.audio.volume : 0
-            }
-            onMoved: (v) => {
-                const sink = Pipewire.defaultAudioSink
-                if (sink && sink.audio) {
-                    sink.audio.muted = false
-                    sink.audio.volume = v
+                    ControlTile {
+                        width: parent.width
+                        iconSource: Networking.wifiEnabled
+                            ? Qt.resolvedUrl("../../assets/icons/wifi-on.svg")
+                            : Qt.resolvedUrl("../../assets/icons/wifi-off.svg")
+                        title: "Wi-Fi"
+                        subtitle: root.wifiName()
+                        active: Networking.wifiEnabled
+                        onClicked: Networking.wifiEnabled = !Networking.wifiEnabled
+                    }
+
+                    ControlTile {
+                        width: parent.width
+                        iconSource: root.adapter && root.adapter.enabled
+                            ? Qt.resolvedUrl("../../assets/icons/bluetooth-on.svg")
+                            : Qt.resolvedUrl("../../assets/icons/bluetooth-off.svg")
+                        title: "Bluetooth"
+                        subtitle: root.adapter && root.adapter.enabled ? "On" : "Off"
+                        active: root.adapter ? root.adapter.enabled : false
+                        onClicked: if (root.adapter) root.adapter.enabled = !root.adapter.enabled
+                    }
+
+                    ControlTile {
+                        width: parent.width
+                        title: "AirDrop"
+                        subtitle: "Unavailable"
+                        enabled: false
+                    }
                 }
+            }
+
+            Column {
+                width: parent.width - parent.children[0].width - parent.spacing
+                spacing: Spacing.sm
+
+                ControlTile {
+                    width: parent.width
+                    height: 44
+                    title: "Do Not Disturb"
+                    subtitle: NotificationService.dndEnabled ? "On" : "Off"
+                    active: NotificationService.dndEnabled
+                    onClicked: NotificationService.dndEnabled = !NotificationService.dndEnabled
+                }
+
+                ControlTile {
+                    width: parent.width
+                    height: 44
+                    title: "Keyboard Brightness"
+                    subtitle: "Unavailable"
+                    enabled: false
+                }
+
+                ControlTile {
+                    width: parent.width
+                    height: 44
+                    title: "AirPlay"
+                    subtitle: "Unavailable"
+                    enabled: false
+                }
+            }
+        }
+
+        Rectangle {
+            width: parent.width
+            height: root.displayExpanded ? 104 : 62
+            radius: 12
+            color: Colors.controlBackground
+
+            Column {
+                anchors.fill: parent
+                anchors.margins: Spacing.md
+                spacing: Spacing.sm
+
+                Item {
+                    id: displayHeader
+                    width: parent.width
+                    height: 20
+
+                    RowLayout {
+                        anchors.fill: parent
+
+                        Text {
+                            text: "Display"
+                            color: Colors.textPrimary
+                            font.family: Typography.family
+                            font.pixelSize: Typography.body
+                            Layout.fillWidth: true
+                        }
+                        Text {
+                            text: root.displayExpanded ? "⌃" : "⌄"
+                            color: Colors.textSecondary
+                            font.pixelSize: Typography.body
+                        }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: root.displayExpanded = !root.displayExpanded
+                    }
+                }
+
+                MSlider {
+                    visible: root.displayExpanded
+                    width: parent.width
+                    value: root.brightnessValue
+                    onMoved: (v) => {
+                        root.brightnessValue = v
+                        brightnessSet.run(v)
+                    }
+                }
+            }
+        }
+
+        RowLayout {
+            width: parent.width
+            spacing: Spacing.sm
+
+            Text {
+                text: "Volume"
+                color: Colors.textSecondary
+                font.family: Typography.family
+                font.pixelSize: Typography.caption
+            }
+
+            MSlider {
+                id: volumeSlider
+                Layout.fillWidth: true
+                value: {
+                    const sink = Pipewire.defaultAudioSink
+                    return sink && sink.audio ? sink.audio.volume : 0
+                }
+                onMoved: (v) => root.setVolume(v)
+            }
+
+            Text {
+                text: Math.round(volumeSlider.value * 100) + "%"
+                color: Colors.textSecondary
+                font.family: Typography.family
+                font.pixelSize: Typography.caption
+                Layout.preferredWidth: 34
             }
         }
 
@@ -114,19 +242,6 @@ PopupWindow {
             function onVolumeChanged() {
                 volumeSlider.value = Pipewire.defaultAudioSink.audio.volume
             }
-        }
-
-        Text {
-            text: "Brightness"
-            color: Colors.textSecondary
-            font.family: Typography.family
-            font.pixelSize: Typography.caption
-        }
-
-        MSlider {
-            id: brightnessSlider
-            width: parent.width
-            onMoved: (v) => brightnessSet.run(v)
         }
 
         // Read current brightness on open (brightnessctl has no change
@@ -151,7 +266,7 @@ PopupWindow {
                     const max = parseInt(text.trim())
                     const current = parseInt(brightnessGet.stdout.text.trim())
                     if (!isNaN(max) && max > 0 && !isNaN(current)) {
-                        brightnessSlider.value = current / max
+                        root.brightnessValue = current / max
                     }
                 }
             }
@@ -166,6 +281,120 @@ PopupWindow {
             }
         }
 
+        Rectangle {
+            width: parent.width
+            height: 70
+            radius: 12
+            color: Colors.controlBackground
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.margins: Spacing.md
+                spacing: Spacing.md
+
+                Text {
+                    text: "Now Playing"
+                    color: Colors.textPrimary
+                    font.family: Typography.family
+                    font.pixelSize: Typography.body
+                    Layout.fillWidth: true
+                }
+
+                Text {
+                    text: "No media"
+                    color: Colors.textSecondary
+                    font.family: Typography.family
+                    font.pixelSize: Typography.caption
+                }
+            }
+        }
+
+        RowLayout {
+            width: parent.width
+
+            Text {
+                text: "Battery"
+                color: Colors.textSecondary
+                font.family: Typography.family
+                font.pixelSize: Typography.caption
+                Layout.fillWidth: true
+            }
+
+            Text {
+                readonly property var battery: UPower.displayDevice
+                text: battery && battery.isPresent ? Math.round(battery.percentage * 100) + "%" : "Unavailable"
+                color: Colors.textPrimary
+                font.family: Typography.family
+                font.pixelSize: Typography.caption
+            }
+        }
+
         Component.onCompleted: brightnessGet.running = true
+    }
+
+    component ControlTile: Rectangle {
+        id: tile
+        property url iconSource
+        property string title: ""
+        property string subtitle: ""
+        property bool active: false
+        signal clicked()
+        implicitHeight: 30
+        radius: 7
+        color: active ? Colors.accent : "transparent"
+        opacity: enabled ? 1 : 0.45
+
+        RowLayout {
+            anchors.fill: parent
+            spacing: Spacing.sm
+
+            StatusIcon {
+                source: tile.iconSource
+                fillColor: tile.active ? "#ffffff" : Colors.textPrimary
+                showBackground: false
+                visible: tile.iconSource.toString().length > 0
+                Layout.preferredWidth: 22
+                Layout.preferredHeight: 22
+            }
+
+            Text {
+                text: tile.title === "Do Not Disturb" ? "◐" : tile.title === "AirDrop" ? "◌" : tile.title === "Keyboard Brightness" ? "⌨" : "▣"
+                color: tile.active ? "#ffffff" : Colors.textPrimary
+                font.pixelSize: Typography.title
+                visible: tile.iconSource.toString().length === 0
+                Layout.preferredWidth: 22
+                horizontalAlignment: Text.AlignHCenter
+            }
+
+            Column {
+                Layout.fillWidth: true
+                spacing: 1
+
+                Text {
+                    text: tile.title
+                    color: tile.active ? "#ffffff" : Colors.textPrimary
+                    font.family: Typography.family
+                    font.pixelSize: Typography.caption
+                    font.bold: true
+                    elide: Text.ElideRight
+                    width: parent.width
+                }
+
+                Text {
+                    text: tile.subtitle
+                    color: tile.active ? "#dbeeff" : Colors.textSecondary
+                    font.family: Typography.family
+                    font.pixelSize: 10
+                    elide: Text.ElideRight
+                    width: parent.width
+                }
+            }
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            enabled: tile.enabled
+            onClicked: tile.clicked()
+        }
     }
 }
