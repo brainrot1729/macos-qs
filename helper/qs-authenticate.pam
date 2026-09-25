@@ -1,0 +1,9 @@
+#%PAM-1.0
+# PAM service for macos-qs's lock screen helper (qs-authenticate).
+# Reuses Arch's standard system-auth stack, same as sudo/polkit — this
+# is not weaker or stronger than your normal login, just a distinct
+# named service so it doesn't inherit login's other side effects
+# (like motd, last-login logging) that don't make sense for a lock
+# screen re-auth.
+auth     include   system-auth
+account  include   system-auth

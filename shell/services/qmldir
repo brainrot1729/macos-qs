@@ -1,0 +1,5 @@
+singleton WindowService 1.0 WindowService.qml
+singleton DockService 1.0 DockService.qml
+singleton NotificationService 1.0 NotificationService.qml
+singleton LauncherService 1.0 LauncherService.qml
+singleton LockService 1.0 LockService.qml
