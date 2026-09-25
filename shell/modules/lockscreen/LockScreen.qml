@@ -34,7 +34,9 @@ WlSessionLock {
             color: Colors.background
 
             ColumnLayout {
-                anchors.centerIn: parent
+                anchors.top: parent.top
+                anchors.topMargin: 200
+                anchors.horizontalCenter: parent.horizontalCenter
                 spacing: Spacing.lg
                 width: 340
 
@@ -47,7 +49,8 @@ WlSessionLock {
                     text: Qt.formatDateTime(lockClock.date, "hh:mm")
                     color: Colors.textPrimary
                     font.family: Typography.family
-                    font.pixelSize: 56
+                    font.pixelSize: 72
+                    font.bold: true
                     Layout.alignment: Qt.AlignHCenter
                 }
 
@@ -59,59 +62,61 @@ WlSessionLock {
                     Layout.alignment: Qt.AlignHCenter
                 }
 
-                Item { Layout.preferredHeight: Spacing.lg }
+            }
 
-                Rectangle {
-                    id: fieldBox
-                    Layout.preferredWidth: 220
-                    Layout.preferredHeight: 40
-                    Layout.alignment: Qt.AlignHCenter
-                    radius: 10
-                    color: Colors.surfaceElevated
-                    border.width: 1
-                    border.color: LockService.authError.length > 0 ? "#ff453a" : Colors.separator
+            Rectangle {
+                id: fieldBox
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 100
+                width: 220
+                height: 40
+                radius: 10
+                color: Colors.surfaceElevated
+                property real shakeOffset: 0
+                transform: Translate { x: fieldBox.shakeOffset }
+                border.width: 1
+                border.color: LockService.authError.length > 0 ? "#ff453a" : Colors.separator
 
-                    Behavior on border.color {
-                        ColorAnimation { duration: Motion.fast }
-                    }
-
-                    // Shake-on-failure via a plain x offset + SequentialAnimation,
-                    // not a fake "type a wrong password again" trick — just a
-                    // one-shot horizontal wiggle, reset to 0 afterward.
-                    SequentialAnimation {
-                        id: shakeAnim
-                        loops: 1
-                        NumberAnimation { target: fieldBox; property: "x"; from: 0; to: -8; duration: 40 }
-                        NumberAnimation { target: fieldBox; property: "x"; from: -8; to: 8; duration: 40 }
-                        NumberAnimation { target: fieldBox; property: "x"; from: 8; to: -6; duration: 40 }
-                        NumberAnimation { target: fieldBox; property: "x"; from: -6; to: 0; duration: 40 }
-                    }
-
-                    TextInput {
-                        id: passwordInput
-                        anchors.fill: parent
-                        anchors.margins: Spacing.sm
-                        verticalAlignment: TextInput.AlignVCenter
-                        color: Colors.textPrimary
-                        font.family: Typography.family
-                        font.pixelSize: Typography.body
-                        echoMode: TextInput.Password
-                        enabled: !authProcess.running
-                        focus: sessionLock.locked
-
-                        onTextEdited: LockService.authError = ""
-                        Keys.onReturnPressed: attemptUnlock()
-                    }
+                Behavior on border.color {
+                    ColorAnimation { duration: Motion.fast }
                 }
 
-                Text {
-                    text: authProcess.running ? "Checking..." : LockService.authError
-                    visible: text.length > 0
-                    color: Colors.textSecondary
+                SequentialAnimation {
+                    id: shakeAnim
+                    loops: 1
+                    NumberAnimation { target: fieldBox; property: "shakeOffset"; from: 0; to: -8; duration: 40 }
+                    NumberAnimation { target: fieldBox; property: "shakeOffset"; from: -8; to: 8; duration: 40 }
+                    NumberAnimation { target: fieldBox; property: "shakeOffset"; from: 8; to: -6; duration: 40 }
+                    NumberAnimation { target: fieldBox; property: "shakeOffset"; from: -6; to: 0; duration: 40 }
+                }
+
+                TextInput {
+                    id: passwordInput
+                    anchors.fill: parent
+                    anchors.margins: Spacing.sm
+                    verticalAlignment: TextInput.AlignVCenter
+                    color: Colors.textPrimary
                     font.family: Typography.family
-                    font.pixelSize: Typography.caption
-                    Layout.alignment: Qt.AlignHCenter
+                    font.pixelSize: Typography.body
+                    echoMode: TextInput.Password
+                    enabled: !authProcess.running
+                    focus: sessionLock.locked
+
+                    onTextEdited: LockService.authError = ""
+                    Keys.onReturnPressed: attemptUnlock()
                 }
+            }
+
+            Text {
+                anchors.horizontalCenter: fieldBox.horizontalCenter
+                anchors.bottom: fieldBox.top
+                anchors.bottomMargin: Spacing.sm
+                text: authProcess.running ? "Checking..." : LockService.authError
+                visible: text.length > 0
+                color: Colors.textSecondary
+                font.family: Typography.family
+                font.pixelSize: Typography.caption
             }
         }
 
