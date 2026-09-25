@@ -25,14 +25,6 @@ WlSessionLock {
     id: sessionLock
     locked: LockService.locked
 
-    // Registers `qs ipc call lock lock`. Deliberately does NOT register
-    // an "unlock" function — see LockService.qml for why that would be
-    // a real vulnerability, not just bad practice.
-    IpcHandler {
-        target: "lock"
-        function lock(): void { LockService.lock() }
-    }
-
     WlSessionLockSurface {
         id: surface
         color: Colors.background

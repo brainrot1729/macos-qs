@@ -1,5 +1,6 @@
 import Quickshell
 import QtQuick
+import Quickshell.Io
 import "./theme"
 import "./components"
 import "./modules/bar"
@@ -7,8 +8,14 @@ import "./modules/dock"
 import "./modules/notifications"
 import "./modules/launcher"
 import "./modules/lockscreen"
+import "./services"
 
 ShellRoot {
+    IpcHandler {
+        target: "lock"
+        function lock(): void { LockService.lock() }
+    }
+
     Bar {}
     Dock {}
 
