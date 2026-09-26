@@ -1,11 +1,13 @@
 import QtQuick
 import QtQuick.Layouts
 import "./theme"
+import "./controls"
 
 Rectangle {
     id: root
     color: Colors.background
 
+    // Each section: { id, label, icon } where icon is a resolved SVG url.
     property var sections: []
     property string currentSection: ""
     signal sectionSelected(string id)
@@ -38,10 +40,11 @@ Rectangle {
                 anchors.rightMargin: Spacing.sm
                 spacing: Spacing.sm
 
-                Text {
-                    text: row.modelData.icon
-                    font.pixelSize: Typography.body
-                    color: row.modelData.id === root.currentSection ? "#ffffff" : Colors.textPrimary
+                SIcon {
+                    source: row.modelData.icon
+                    color: row.modelData.id === root.currentSection ? "#ffffff" : Colors.textSecondary
+                    Layout.preferredWidth: 17
+                    Layout.preferredHeight: 17
                 }
 
                 Text {

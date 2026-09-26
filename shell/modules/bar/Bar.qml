@@ -20,7 +20,11 @@ PanelWindow {
         left: true
         right: true
     }
-    implicitHeight: 28
+    // Was 28px — cramped next to 13px text and 16-18px icons with no
+    // vertical margin at all. 34px gives real breathing room, still
+    // slimmer than a full title bar. Everything below scales up to
+    // match rather than floating in extra empty space.
+    implicitHeight: 34
     color: Colors.background
 
     // Required for Pipewire.defaultAudioSink's properties to actually
@@ -52,6 +56,17 @@ PanelWindow {
             if (networks[i].connected) return networks[i]
         }
         return null
+    }
+
+    // Maps continuous signalStrength (0..1) to a discrete 1-3 tier for
+    // WifiSignalIcon, matching how macOS/iOS quantize Wi-Fi bars rather
+    // than trying to show fractional arcs.
+    readonly property int wifiTier: {
+        if (!Networking.wifiEnabled || !bar.connectedWifi) return 0
+        const s = bar.connectedWifi.signalStrength
+        if (s >= 0.66) return 3
+        if (s >= 0.33) return 2
+        return 1
     }
 
     readonly property var btAdapter: Bluetooth.defaultAdapter
@@ -119,8 +134,8 @@ PanelWindow {
 
     RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: Spacing.md
-        anchors.rightMargin: Spacing.md
+        anchors.leftMargin: Spacing.lg
+        anchors.rightMargin: Spacing.lg
 
         // Left: active app name, now real. Falls back to "Desktop"
         // when nothing is focused, macOS shows Finder in that spot,
@@ -129,29 +144,25 @@ PanelWindow {
             text: WindowService.activeAppName || "Desktop"
             color: Colors.textPrimary
             font.family: Typography.family
-            font.pixelSize: Typography.body
+            font.pixelSize: Typography.headline
+            font.bold: true
             Layout.alignment: Qt.AlignVCenter
         }
 
         Item { Layout.fillWidth: true }
 
         RowLayout {
-            spacing: Spacing.md
+            spacing: Spacing.lg
             Layout.alignment: Qt.AlignVCenter
 
-            StatusIcon {
-                source: {
-                    if (!Networking.wifiEnabled || !bar.wifiDevice || !bar.wifiDevice.connected)
-                        return Qt.resolvedUrl("../../assets/icons/wifi-off.svg")
-                    return Qt.resolvedUrl("../../assets/icons/wifi-on.svg")
-                }
-                fill: !Networking.wifiEnabled || !bar.wifiDevice || !bar.wifiDevice.connected
-                    ? 1
-                    : (bar.connectedWifi ? bar.connectedWifi.signalStrength : 0)
-                fillFromBottom: true
-                showBackground: false
-                Layout.preferredWidth: 16
-                Layout.preferredHeight: 16
+            WifiSignalIcon {
+                Layout.preferredWidth: 20
+                Layout.preferredHeight: 20
+                Layout.alignment: Qt.AlignVCenter
+                tier: bar.wifiTier
+                dimmed: !Networking.wifiEnabled || !bar.wifiDevice || !bar.wifiDevice.connected
+                activeColor: Colors.textPrimary
+                inactiveColor: Colors.textTertiary
 
                 MouseArea {
                     anchors.fill: parent
@@ -171,8 +182,9 @@ PanelWindow {
                     : Qt.resolvedUrl("../../assets/icons/bluetooth-off.svg")
                 fillColor: Colors.textSecondary
                 showBackground: false
-                Layout.preferredWidth: 16
-                Layout.preferredHeight: 16
+                Layout.preferredWidth: 19
+                Layout.preferredHeight: 19
+                Layout.alignment: Qt.AlignVCenter
 
                 MouseArea {
                     anchors.fill: parent
@@ -198,7 +210,8 @@ PanelWindow {
                 }
                 color: Colors.textSecondary
                 font.family: Typography.family
-                font.pixelSize: Typography.caption
+                font.pixelSize: Typography.body
+                Layout.alignment: Qt.AlignVCenter
 
                 MouseArea {
                     anchors.fill: parent
@@ -219,6 +232,7 @@ PanelWindow {
 
             RowLayout {
                 spacing: Spacing.xs
+                Layout.alignment: Qt.AlignVCenter
 
                 StatusIcon {
                     readonly property var battery: UPower.displayDevice
@@ -239,8 +253,9 @@ PanelWindow {
                     fillEnd: 391 / 512
                     backgroundColor: Colors.textPrimary
                     fillColor: battery && battery.percentage <= 0.2 ? "#ff453a" : Colors.textPrimary
-                    Layout.preferredWidth: 18
-                    Layout.preferredHeight: 16
+                    Layout.preferredWidth: 22
+                    Layout.preferredHeight: 20
+                    Layout.alignment: Qt.AlignVCenter
 
                     MouseArea {
                         anchors.fill: parent
@@ -268,7 +283,8 @@ PanelWindow {
                     }
                     color: Colors.textSecondary
                     font.family: Typography.family
-                    font.pixelSize: Typography.caption
+                    font.pixelSize: Typography.body
+                    Layout.alignment: Qt.AlignVCenter
                 }
             }
 
@@ -276,8 +292,9 @@ PanelWindow {
                 source: Qt.resolvedUrl("../../assets/icons/control-center.svg")
                 fillColor: Colors.textPrimary
                 showBackground: false
-                Layout.preferredWidth: 18
-                Layout.preferredHeight: 18
+                Layout.preferredWidth: 21
+                Layout.preferredHeight: 21
+                Layout.alignment: Qt.AlignVCenter
 
                 MouseArea {
                     anchors.fill: parent
@@ -297,7 +314,8 @@ PanelWindow {
                 text: Qt.formatDateTime(clock.date, "ddd d MMM  hh:mm")
                 color: Colors.textPrimary
                 font.family: Typography.family
-                font.pixelSize: Typography.body
+                font.pixelSize: Typography.headline
+                Layout.alignment: Qt.AlignVCenter
 
                 MouseArea {
                     anchors.fill: parent

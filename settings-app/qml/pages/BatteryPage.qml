@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import "../theme"
+import "../controls"
 import SettingsApp
 
 ColumnLayout {
@@ -42,25 +43,50 @@ ColumnLayout {
         font.bold: true
     }
 
-    GridLayout {
-        columns: 2
-        columnSpacing: Spacing.lg
-        rowSpacing: Spacing.sm
+    SCard {
+        Layout.fillWidth: true
+        implicitHeight: contentCol.implicitHeight + Spacing.md * 2
         visible: root.present
 
-        Text { text: "Charge"; color: Colors.textSecondary; font.family: Typography.family; font.pixelSize: Typography.body }
-        Text { text: root.percentage; color: Colors.textPrimary; font.family: Typography.family; font.pixelSize: Typography.body }
+        ColumnLayout {
+            id: contentCol
+            width: parent.width
+            spacing: Spacing.sm
 
-        Text { text: "State"; color: Colors.textSecondary; font.family: Typography.family; font.pixelSize: Typography.body }
-        Text { text: root.state; color: Colors.textPrimary; font.family: Typography.family; font.pixelSize: Typography.body }
+            RowLayout {
+                Layout.fillWidth: true
+                SIcon {
+                    source: Qt.resolvedUrl("../assets/icons/battery.svg")
+                    color: Colors.textSecondary
+                    Layout.preferredWidth: 20
+                    Layout.preferredHeight: 20
+                }
+                Text { text: "Charge"; color: Colors.textSecondary; font.family: Typography.family; font.pixelSize: Typography.body; Layout.fillWidth: true }
+                Text { text: root.percentage; color: Colors.textPrimary; font.family: Typography.family; font.pixelSize: Typography.body }
+            }
+
+            Rectangle { Layout.fillWidth: true; height: 1; color: Colors.background }
+
+            RowLayout {
+                Layout.fillWidth: true
+                Text { text: "State"; color: Colors.textSecondary; font.family: Typography.family; font.pixelSize: Typography.body; Layout.fillWidth: true }
+                Text { text: root.state; color: Colors.textPrimary; font.family: Typography.family; font.pixelSize: Typography.body }
+            }
+        }
     }
 
-    Text {
+    SCard {
+        Layout.fillWidth: true
+        implicitHeight: 50
         visible: !root.present
-        text: "No battery detected."
-        color: Colors.textSecondary
-        font.family: Typography.family
-        font.pixelSize: Typography.body
+
+        Text {
+            anchors.centerIn: parent
+            text: "No battery detected."
+            color: Colors.textSecondary
+            font.family: Typography.family
+            font.pixelSize: Typography.body
+        }
     }
 
     Item { Layout.fillHeight: true }

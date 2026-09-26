@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Controls
 import "../theme"
+import "../controls"
 import SettingsApp
 
 ColumnLayout {
@@ -32,29 +32,34 @@ ColumnLayout {
         font.bold: true
     }
 
-    RowLayout {
+    SCard {
         Layout.fillWidth: true
-        spacing: Spacing.md
+        implicitHeight: 60
 
-        Text {
-            text: "\u2600"
-            font.pixelSize: Typography.title
-        }
+        RowLayout {
+            anchors.fill: parent
+            spacing: Spacing.md
 
-        Slider {
-            Layout.fillWidth: true
-            from: 0
-            to: 1
-            value: root.brightness
-            onMoved: root.setBrightness(value)
-        }
+            SIcon {
+                source: Qt.resolvedUrl("../assets/icons/sun.svg")
+                color: Colors.textSecondary
+                Layout.preferredWidth: 20
+                Layout.preferredHeight: 20
+            }
 
-        Text {
-            text: Math.round(root.brightness * 100) + "%"
-            color: Colors.textSecondary
-            font.family: Typography.family
-            font.pixelSize: Typography.body
-            Layout.preferredWidth: 40
+            SSlider {
+                Layout.fillWidth: true
+                value: root.brightness
+                onMoved: root.setBrightness(value)
+            }
+
+            Text {
+                text: Math.round(root.brightness * 100) + "%"
+                color: Colors.textSecondary
+                font.family: Typography.family
+                font.pixelSize: Typography.body
+                Layout.preferredWidth: 42
+            }
         }
     }
 

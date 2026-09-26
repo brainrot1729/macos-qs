@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import "../theme"
+import "../controls"
 import SettingsApp
 
 ColumnLayout {
@@ -23,19 +24,26 @@ ColumnLayout {
         font.bold: true
     }
 
-    GridLayout {
-        columns: 2
-        columnSpacing: Spacing.lg
-        rowSpacing: Spacing.sm
+    SCard {
+        Layout.fillWidth: true
+        implicitHeight: grid.implicitHeight + Spacing.md * 2
 
-        Text { text: "Device name"; color: Colors.textSecondary; font.family: Typography.family; font.pixelSize: Typography.body }
-        Text { text: root.hostname.length > 0 ? root.hostname : "Unknown"; color: Colors.textPrimary; font.family: Typography.family; font.pixelSize: Typography.body }
+        GridLayout {
+            id: grid
+            width: parent.width
+            columns: 2
+            columnSpacing: Spacing.lg
+            rowSpacing: Spacing.md
 
-        Text { text: "Kernel"; color: Colors.textSecondary; font.family: Typography.family; font.pixelSize: Typography.body }
-        Text { text: root.kernel.length > 0 ? root.kernel : "Unknown"; color: Colors.textPrimary; font.family: Typography.family; font.pixelSize: Typography.body }
+            Text { text: "Device name"; color: Colors.textSecondary; font.family: Typography.family; font.pixelSize: Typography.body }
+            Text { text: root.hostname.length > 0 ? root.hostname : "Unknown"; color: Colors.textPrimary; font.family: Typography.family; font.pixelSize: Typography.body }
 
-        Text { text: "Window manager"; color: Colors.textSecondary; font.family: Typography.family; font.pixelSize: Typography.body }
-        Text { text: "Hyprland (floating-only)"; color: Colors.textPrimary; font.family: Typography.family; font.pixelSize: Typography.body }
+            Text { text: "Kernel"; color: Colors.textSecondary; font.family: Typography.family; font.pixelSize: Typography.body }
+            Text { text: root.kernel.length > 0 ? root.kernel : "Unknown"; color: Colors.textPrimary; font.family: Typography.family; font.pixelSize: Typography.body }
+
+            Text { text: "Window manager"; color: Colors.textSecondary; font.family: Typography.family; font.pixelSize: Typography.body }
+            Text { text: "Hyprland (floating-only)"; color: Colors.textPrimary; font.family: Typography.family; font.pixelSize: Typography.body }
+        }
     }
 
     Item { Layout.fillHeight: true }

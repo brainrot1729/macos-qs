@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
 import "../theme"
+import "../controls"
 import SettingsApp
 
 ColumnLayout {
@@ -97,7 +98,7 @@ ColumnLayout {
             Layout.fillWidth: true
         }
 
-        Switch {
+        SToggle {
             checked: root.wifiOn
             onToggled: root.toggleWifi()
         }
@@ -141,9 +142,13 @@ ColumnLayout {
                     Layout.fillWidth: true
                     spacing: Spacing.sm
 
-                    Text {
-                        text: row.modelData.secured ? "\ud83d\udd12" : "\ud83d\udcf6"
-                        font.pixelSize: Typography.body
+                    SIcon {
+                        source: row.modelData.secured
+                            ? Qt.resolvedUrl("../assets/icons/lock.svg")
+                            : Qt.resolvedUrl("../assets/icons/open-network.svg")
+                        color: Colors.textSecondary
+                        Layout.preferredWidth: 16
+                        Layout.preferredHeight: 16
                     }
 
                     Text {
@@ -155,12 +160,12 @@ ColumnLayout {
                         elide: Text.ElideRight
                     }
 
-                    Text {
+                    SIcon {
                         visible: row.modelData.active
-                        text: "Connected"
+                        source: Qt.resolvedUrl("../assets/icons/checkmark.svg")
                         color: Colors.accent
-                        font.family: Typography.family
-                        font.pixelSize: Typography.caption
+                        Layout.preferredWidth: 15
+                        Layout.preferredHeight: 15
                     }
                 }
 
@@ -177,8 +182,9 @@ ColumnLayout {
                         Keys.onReturnPressed: root.submitPassword()
                     }
 
-                    Button {
+                    SButton {
                         text: "Join"
+                        primary: true
                         onClicked: root.submitPassword()
                     }
                 }

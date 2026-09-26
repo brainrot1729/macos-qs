@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Controls
 import "../theme"
+import "../controls"
 import SettingsApp
 
 ColumnLayout {
@@ -77,12 +77,12 @@ ColumnLayout {
             Layout.fillWidth: true
         }
 
-        Switch {
+        SToggle {
             checked: root.btOn
             onToggled: root.togglePower()
         }
 
-        Button {
+        SButton {
             text: "Refresh"
             onClicked: root.refreshDevices()
         }
@@ -109,6 +109,13 @@ ColumnLayout {
                 anchors.margins: Spacing.sm
                 spacing: Spacing.sm
 
+                SIcon {
+                    source: Qt.resolvedUrl("../assets/icons/bluetooth.svg")
+                    color: Colors.textSecondary
+                    Layout.preferredWidth: 16
+                    Layout.preferredHeight: 16
+                }
+
                 Text {
                     text: row.modelData.name
                     color: Colors.textPrimary
@@ -125,11 +132,11 @@ ColumnLayout {
                     font.pixelSize: Typography.caption
                 }
 
-                Button {
+                SButton {
                     text: root.busyMac === row.modelData.mac
                         ? "..."
                         : row.modelData.connected ? "Disconnect" : (row.modelData.paired ? "Connect" : "Pair")
-                    enabled: root.busyMac !== row.modelData.mac
+                    enabled_: root.busyMac !== row.modelData.mac
                     onClicked: root.toggleConnect(row.modelData)
                 }
             }

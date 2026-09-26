@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Controls
 import "../theme"
+import "../controls"
 import SettingsApp
 
 ColumnLayout {
@@ -18,7 +18,13 @@ ColumnLayout {
         root.muted = raw.indexOf("MUTED") !== -1
     }
 
-    function setVolume(v) {
+    // wpctl volume can exceed 1.0 (boosted gain), but SSlider only
+    // understands 0..1 — map to/from a fixed 0..1.5 display range here
+    // rather than teaching the slider about an app-specific ceiling.
+    readonly property real maxVolume: 1.5
+
+    function setVolume(sliderPos) {
+        const v = sliderPos * root.maxVolume
         root.volume = v
         ProcessRunner.run("wpctl", ["set-volume", "@DEFAULT_AUDIO_SINK@", v.toFixed(2)])
     }
@@ -45,35 +51,42 @@ ColumnLayout {
         font.bold: true
     }
 
-    RowLayout {
+    SCard {
         Layout.fillWidth: true
-        spacing: Spacing.md
+        implicitHeight: 60
 
-        Text {
-            text: root.muted ? "\ud83d\udd07" : "\ud83d\udd0a"
-            font.pixelSize: Typography.title
+        RowLayout {
+            anchors.fill: parent
+            spacing: Spacing.md
 
-            MouseArea {
-                anchors.fill: parent
-                anchors.margins: -6
-                onClicked: root.toggleMute()
+            SIcon {
+                source: root.muted
+                    ? Qt.resolvedUrl("../assets/icons/speaker-muted.svg")
+                    : Qt.resolvedUrl("../assets/icons/speaker.svg")
+                color: Colors.textSecondary
+                Layout.preferredWidth: 22
+                Layout.preferredHeight: 22
+
+                MouseArea {
+                    anchors.fill: parent
+                    anchors.margins: -6
+                    onClicked: root.toggleMute()
+                }
             }
-        }
 
-        Slider {
-            Layout.fillWidth: true
-            from: 0
-            to: 1.5
-            value: root.volume
-            onMoved: root.setVolume(value)
-        }
+            SSlider {
+                Layout.fillWidth: true
+                value: Math.min(1, root.volume / root.maxVolume)
+                onMoved: (v) => root.setVolume(v)
+            }
 
-        Text {
-            text: Math.round(root.volume * 100) + "%"
-            color: Colors.textSecondary
-            font.family: Typography.family
-            font.pixelSize: Typography.body
-            Layout.preferredWidth: 40
+            Text {
+                text: Math.round(root.volume * 100) + "%"
+                color: Colors.textSecondary
+                font.family: Typography.family
+                font.pixelSize: Typography.body
+                Layout.preferredWidth: 42
+            }
         }
     }
 

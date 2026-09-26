@@ -4,12 +4,25 @@ import QtQuick.Layouts
 import "./theme"
 import "./pages"
 
+// Root window. Previously this relied only on a QQC2 `palette {}` block to
+// re-theme the default "Basic" style — that only recolors QQC2's own
+// native controls (Button/Switch/Slider/ScrollBar chrome), it does not
+// touch spacing, radii, or the emoji glyphs pages were using as icons.
+// That's the real reason the app looked inconsistent with the shell no
+// matter what CMake or palette settings were tried: most of what makes
+// the shell look "right" (pill toggles, accent-filled sliders, real SVG
+// icons, consistent card radii) was never expressed through QQC2's
+// styling hooks at all in the shell either — it's custom QML components,
+// not a Controls style. So the fix here is the same: pages now use
+// controls/SToggle, SButton, SSlider, SCard, SIcon instead of the raw
+// QtQuick.Controls versions and emoji text, and only fall back to plain
+// QQC2 for things with no equivalent yet (TextField, ScrollBar internals).
 ApplicationWindow {
     id: window
-    width: 820
-    height: 560
-    minimumWidth: 680
-    minimumHeight: 440
+    width: 860
+    height: 580
+    minimumWidth: 700
+    minimumHeight: 460
     visible: true
     title: "System Settings"
     color: Colors.background
@@ -31,13 +44,13 @@ ApplicationWindow {
     }
 
     property var sections: [
-        { id: "general", label: "General", icon: "\u2699" },
-        { id: "wifi", label: "Wi-Fi", icon: "\ud83d\udcf6" },
-        { id: "bluetooth", label: "Bluetooth", icon: "\u24b7" },
-        { id: "sound", label: "Sound", icon: "\ud83d\udd0a" },
-        { id: "displays", label: "Displays", icon: "\ud83d\udda5" },
-        { id: "battery", label: "Battery", icon: "\ud83d\udd0b" },
-        { id: "about", label: "About", icon: "\u2139" }
+        { id: "general", label: "General", icon: Qt.resolvedUrl("../assets/icons/gear.svg") },
+        { id: "wifi", label: "Wi-Fi", icon: Qt.resolvedUrl("../assets/icons/wifi.svg") },
+        { id: "bluetooth", label: "Bluetooth", icon: Qt.resolvedUrl("../assets/icons/bluetooth.svg") },
+        { id: "sound", label: "Sound", icon: Qt.resolvedUrl("../assets/icons/speaker.svg") },
+        { id: "displays", label: "Displays", icon: Qt.resolvedUrl("../assets/icons/display.svg") },
+        { id: "battery", label: "Battery", icon: Qt.resolvedUrl("../assets/icons/battery.svg") },
+        { id: "about", label: "About", icon: Qt.resolvedUrl("../assets/icons/info.svg") }
     ]
     property string currentSection: "general"
 

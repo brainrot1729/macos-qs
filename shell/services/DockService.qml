@@ -4,16 +4,22 @@ import Quickshell
 
 // Edit this to match what you actually run. Matched against desktop
 // entry ids via heuristicLookup, not against pretty display names.
-// Only "kitty" is filled in here since that's the one app actually
-// known, rather than guessing the rest of your setup.
+//
+// VSCode's id depends on how it's installed:
+//   - Arch package `code` (OSS build)        -> "code"
+//   - AUR `visual-studio-code-bin`           -> "code"
+//   - Flatpak com.visualstudio.code          -> "com.visualstudio.code"
+//   - Microsoft's own .deb/rpm repo build     -> "com.microsoft.vscode"  (Flatpak-style id baked into its own .desktop file, this is what
+//      was actually installed here, hence "com.microsoft.vscode" showing
+//      up raw in the dock instead of a pretty name — heuristicLookup
+//      couldn't match the pinned id "code" against it.)
 QtObject {
-	readonly property var pinnedIds: 
+	readonly property var pinnedIds:
 	[
 		"kitty",
 		"zen",
 		"org.kde.dolphin",
-		"code"
-		
+		"com.microsoft.vscode"
 	]
 
     function toplevelsFor(entryId) {

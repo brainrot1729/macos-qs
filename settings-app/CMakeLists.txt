@@ -32,6 +32,11 @@ qt_add_qml_module(macos-qs-settings
         qml/theme/Spacing.qml
         qml/theme/Typography.qml
         qml/theme/Motion.qml
+        qml/controls/SToggle.qml
+        qml/controls/SButton.qml
+        qml/controls/SSlider.qml
+        qml/controls/SCard.qml
+        qml/controls/SIcon.qml
         qml/pages/GeneralPage.qml
         qml/pages/WiFiPage.qml
         qml/pages/BluetoothPage.qml
@@ -41,6 +46,18 @@ qt_add_qml_module(macos-qs-settings
         qml/pages/AboutPage.qml
     RESOURCES
         qml/theme/qmldir
+        assets/icons/gear.svg
+        assets/icons/wifi.svg
+        assets/icons/bluetooth.svg
+        assets/icons/speaker.svg
+        assets/icons/speaker-muted.svg
+        assets/icons/display.svg
+        assets/icons/sun.svg
+        assets/icons/battery.svg
+        assets/icons/info.svg
+        assets/icons/lock.svg
+        assets/icons/open-network.svg
+        assets/icons/checkmark.svg
 )
 
 target_link_libraries(macos-qs-settings

@@ -15,12 +15,20 @@ Item {
         NumberAnimation { duration: Motion.fast; easing.type: Motion.standardEasing }
     }
 
+    // Only hit when heuristicLookup found no matching .desktop entry at
+    // all (entry is null) — a raw appId like "com.microsoft.vscode" is a
+    // reverse-DNS id, not a display name, so take the last dot-segment
+    // rather than its first character ("c" is useless as a fallback
+    // glyph; "vscode" -> "V" at least means something).
     function fallbackLetter() {
         if (root.dockItem.entry && root.dockItem.entry.name) {
             return root.dockItem.entry.name.charAt(0).toUpperCase()
         }
         if (root.dockItem.toplevel && root.dockItem.toplevel.appId) {
-            return root.dockItem.toplevel.appId.charAt(0).toUpperCase()
+            const raw = root.dockItem.toplevel.appId
+            const segments = raw.split(".")
+            const last = segments[segments.length - 1]
+            return last.charAt(0).toUpperCase()
         }
         return "?"
     }
