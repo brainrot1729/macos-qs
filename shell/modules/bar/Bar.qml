@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Services.UPower
@@ -54,9 +55,25 @@ PanelWindow {
     }
 
     readonly property var btAdapter: Bluetooth.defaultAdapter
+    readonly property string wifiSummary: {
+        if (!Networking.wifiEnabled) return "Wi-Fi off"
+        if (!bar.connectedWifi) return "Wi-Fi not connected"
+        return "Wi-Fi: " + (bar.connectedWifi.name || "Connected")
+    }
+    readonly property string bluetoothSummary: {
+        const adapter = bar.btAdapter
+        if (!adapter) return "Bluetooth unavailable"
+        if (!adapter.enabled) return "Bluetooth off"
+        const connected = adapter.devices.values.filter(device => device.connected)
+        if (connected.length === 0) return "Bluetooth on, no devices connected"
+        return "Bluetooth: " + connected.map(device =>
+            device.name || device.deviceName || "Unknown device").join(", ")
+    }
 
     // Control Center and Notification Center both anchor to this same
-    // top-right corner, same as macOS. Only one open at a time.
+    // top-right corner, same as macOS. Only one open at a time. Wi-Fi and
+    // Bluetooth detail live *inside* Control Center now (see its own
+    // expandedPanel), not as separate popups here.
     property bool ccOpen: false
     property bool ncOpen: false
 
@@ -135,26 +152,39 @@ PanelWindow {
                 showBackground: false
                 Layout.preferredWidth: 16
                 Layout.preferredHeight: 16
-            }
-
-            Text {
-                text: {
-                    const adapter = bar.btAdapter
-                    if (!adapter || !adapter.enabled) return "bt off"
-                    const connected = adapter.devices.values.filter(d => d.connected).length
-                    return connected > 0 ? "bt " + connected : "bt on"
-                }
-                color: Colors.textSecondary
-                font.family: Typography.family
-                font.pixelSize: Typography.caption
 
                 MouseArea {
                     anchors.fill: parent
                     anchors.margins: -Spacing.xs
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    ToolTip.visible: containsMouse
+                    ToolTip.text: bar.wifiSummary
+                    ToolTip.delay: 500
+                    onClicked: bar.openControlCenter()
+                }
+            }
+
+            StatusIcon {
+                source: bar.btAdapter && bar.btAdapter.enabled
+                    ? Qt.resolvedUrl("../../assets/icons/bluetooth-on.svg")
+                    : Qt.resolvedUrl("../../assets/icons/bluetooth-off.svg")
+                fillColor: Colors.textSecondary
+                showBackground: false
+                Layout.preferredWidth: 16
+                Layout.preferredHeight: 16
+
+                MouseArea {
+                    anchors.fill: parent
+                    anchors.margins: -Spacing.xs
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    ToolTip.visible: containsMouse
+                    ToolTip.text: bar.bluetoothSummary
+                    ToolTip.delay: 500
                     onClicked: {
                         const adapter = bar.btAdapter
-                        if (!adapter) return
-                        adapter.enabled = !adapter.enabled
+                        if (adapter) adapter.enabled = !adapter.enabled
                     }
                 }
             }
@@ -169,6 +199,22 @@ PanelWindow {
                 color: Colors.textSecondary
                 font.family: Typography.family
                 font.pixelSize: Typography.caption
+
+                MouseArea {
+                    anchors.fill: parent
+                    anchors.margins: -Spacing.xs
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    ToolTip.visible: containsMouse
+                    ToolTip.text: {
+                        const sink = Pipewire.defaultAudioSink
+                        if (!sink || !sink.audio) return "No audio output"
+                        if (sink.audio.muted) return "Audio output muted"
+                        return "Audio output: " + Math.round(sink.audio.volume * 100) + "%"
+                    }
+                    ToolTip.delay: 500
+                    onClicked: bar.openControlCenter()
+                }
             }
 
             RowLayout {
@@ -176,9 +222,17 @@ PanelWindow {
 
                 StatusIcon {
                     readonly property var battery: UPower.displayDevice
-                    source: battery && battery.state === UPowerDeviceState.Charging
-                        ? Qt.resolvedUrl("../../assets/icons/battery-charging.svg")
-                        : Qt.resolvedUrl("../../assets/icons/battery-draining.svg")
+                    // FullyCharged (plugged in, done charging) previously
+                    // fell into the "draining" branch, which showed the
+                    // discharging glyph even while plugged in and full.
+                    source: {
+                        if (!battery) return Qt.resolvedUrl("../../assets/icons/battery-draining.svg")
+                        if (battery.state === UPowerDeviceState.Charging)
+                            return Qt.resolvedUrl("../../assets/icons/battery-charging.svg")
+                        if (battery.state === UPowerDeviceState.FullyCharged)
+                            return Qt.resolvedUrl("../../assets/icons/battery-idle.svg")
+                        return Qt.resolvedUrl("../../assets/icons/battery-draining.svg")
+                    }
                     fillSource: Qt.resolvedUrl("../../assets/icons/battery-fill.svg")
                     fill: battery && battery.isPresent ? battery.percentage : 0
                     fillStart: 61 / 512
@@ -187,6 +241,23 @@ PanelWindow {
                     fillColor: battery && battery.percentage <= 0.2 ? "#ff453a" : Colors.textPrimary
                     Layout.preferredWidth: 18
                     Layout.preferredHeight: 16
+
+                    MouseArea {
+                        anchors.fill: parent
+                        anchors.margins: -Spacing.xs
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        ToolTip.visible: containsMouse
+                        ToolTip.text: {
+                            if (!battery || !battery.isPresent) return "Battery unavailable"
+                            const charge = Math.round(battery.percentage * 100) + "%"
+                            return battery.state === UPowerDeviceState.Charging
+                                ? "Charging: " + charge
+                                : "Battery: " + charge
+                        }
+                        ToolTip.delay: 500
+                        onClicked: bar.openControlCenter()
+                    }
                 }
 
                 Text {
@@ -211,6 +282,11 @@ PanelWindow {
                 MouseArea {
                     anchors.fill: parent
                     anchors.margins: -Spacing.xs
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    ToolTip.visible: containsMouse
+                    ToolTip.text: "Control Center"
+                    ToolTip.delay: 500
                     onClicked: bar.openControlCenter()
                 }
             }
@@ -226,6 +302,11 @@ PanelWindow {
                 MouseArea {
                     anchors.fill: parent
                     anchors.margins: -Spacing.xs
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    ToolTip.visible: containsMouse
+                    ToolTip.text: Qt.formatDateTime(clock.date, "dddd, d MMMM yyyy")
+                    ToolTip.delay: 500
                     onClicked: bar.openNotificationCenter()
                 }
             }

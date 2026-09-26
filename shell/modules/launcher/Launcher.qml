@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
+import Qt5Compat.GraphicalEffects
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
@@ -124,19 +125,27 @@ PanelWindow {
                 Layout.fillWidth: true
                 spacing: Spacing.sm
 
-                Image {
-                    source: Qt.resolvedUrl("../../assets/search.svg")
-
-                    sourceSize.width: 22
-                    sourceSize.height: 22
-
-                    width: 22
-                    height: 22
-
-                    fillMode: Image.PreserveAspectFit
-                    opacity: 0.8
-
+                // The search asset lives under assets/icons.
+                Item {
+                    Layout.preferredWidth: 22
+                    Layout.preferredHeight: 22
                     Layout.alignment: Qt.AlignVCenter
+
+                    Image {
+                        id: searchIcon
+                        anchors.fill: parent
+                        source: Qt.resolvedUrl("../../assets/icons/search.svg")
+                        sourceSize: Qt.size(width * 2, height * 2)
+                        fillMode: Image.PreserveAspectFit
+                        visible: false
+                    }
+
+                    ColorOverlay {
+                        anchors.fill: searchIcon
+                        source: searchIcon
+                        color: Colors.textPrimary
+                        opacity: 0.8
+                    }
                 }
 
                 Item {

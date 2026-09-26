@@ -1,8 +1,6 @@
 import Quickshell
 import QtQuick
 import Quickshell.Io
-import "./theme"
-import "./components"
 import "./modules/bar"
 import "./modules/dock"
 import "./modules/notifications"
@@ -35,50 +33,4 @@ ShellRoot {
     // see LockScreen.qml's header comment on why destroying it while
     // locked would be a security problem, not just a bug.
     LockScreen {}
-
-    // Phase 1 test harness: every base component in one floating window.
-    // Close it once you're done checking it, it's not part of the shell,
-    // just a workbench for building the design system.
-    FloatingWindow {
-        id: harness
-        visible: true
-        title: "macos-qs component harness"
-        implicitWidth: 360
-        implicitHeight: 340
-        color: Colors.background
-
-        Column {
-            anchors.fill: parent
-            anchors.margins: Spacing.lg
-            spacing: Spacing.md
-
-            Text {
-                text: "Component harness"
-                color: Colors.textPrimary
-                font.family: Typography.family
-                font.pixelSize: Typography.title
-            }
-
-            Row {
-                spacing: Spacing.sm
-                MButton { text: "Cancel" }
-                MButton { text: "Continue"; primary: true }
-            }
-
-            MToggle { checked: true }
-
-            MSlider { value: 0.4 }
-
-            Popover {
-                width: 220
-                height: 70
-                Text {
-                    text: "Popover content"
-                    color: Colors.textPrimary
-                    font.family: Typography.family
-                    font.pixelSize: Typography.body
-                }
-            }
-        }
-    }
 }

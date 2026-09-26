@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Settings (Native)
+GenericName=System Settings
+Comment=Configure macos-qs system settings
+Exec=@CMAKE_INSTALL_FULL_BINDIR@/macos-qs-settings
+Icon=preferences-system
+Terminal=false
+Categories=Settings;Qt;
+Keywords=settings;system;wifi;bluetooth;display;sound;
